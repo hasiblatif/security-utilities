@@ -144,6 +144,7 @@ def find_EXE_by_XOR(params):
 					time.sleep(1)
 					writefile("decrypted.exe",decrypted_data[MZ_offset:MZ_offset+size_of_image[0]])
 					sys.exit(1)
+			print "[-] could not find exe in:" +infile
 		except Exception as e:
 			print e
 			sys.exit(1)
