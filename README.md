@@ -1,5 +1,7 @@
 # security-utilities
-Utilities like conversion to other data types, one byte encryption / decryption etc
+Utilities like encryption / decryption by XOR, find Windows executable in XORED data using key / bruteforce,
+
+conversion to other data types, etc
 
 ## Usage:
 
