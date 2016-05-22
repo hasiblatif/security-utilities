@@ -1,5 +1,6 @@
 # security-utilities
 Utilities like conversion to other data types, one byte encryption / decryption etc
+
 Usage:
 
 python utils.py -i [input file] [switch] [options]
