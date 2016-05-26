@@ -1,9 +1,12 @@
 import sys
+from base64 import b64encode,b64decode
 import binascii
 import codecs
 import struct
 import os
+import getopt
 import time
+
 def to_hex_unints(params):
 	if params["input_file_name"]!="":
 		print "[-] Converting raw data to hexadecimal uints "
@@ -27,7 +30,6 @@ def to_hex_unints(params):
 					four_uints=''
 				else:
 					four_uints=','
-			
 				four_uints+="0x"+i[6:8]+i[4:6]+i[2:4]+i[0:2]
 				data+=four_uints
 				bytes+=len(data)-3 # excluding ',' and '0x'
@@ -139,7 +141,6 @@ def find_EXE_by_XOR(params):
 					PE_offset = struct.unpack("<I",decrypted_data[MZ_offset+60:MZ_offset+60+4])
 					size_of_image =struct.unpack("<I",decrypted_data[PE_offset[0]+22+56:PE_offset[0]+22+56+4])
 					print "[-] Windows Executable found at offset:" +  str(MZ_offset) +" and key is: " + chr(key)
-			
 					print "[-] Writing decrypted file to decrypted.exe"
 					time.sleep(1)
 					writefile("decrypted.exe",decrypted_data[MZ_offset:MZ_offset+size_of_image[0]])
@@ -168,6 +169,9 @@ def setParameters(args):
 	index = 0
 	find_exe_with_key = ""
 	find_exe_with_brute_force = False
+	base64 =""
+	#opts, args = getopt.getopt(args,"hid:",["inputUrlsFileName=","dh_file="])
+	#print opts
 	for i in args:
 		try:
 			if "-o" in i:
@@ -190,15 +194,48 @@ def setParameters(args):
 						find_exe_with_brute_force = True
 				except:
 					find_exe_with_brute_force = True
+			if "-b" in i:
+				try:
+					if "encode" in args[index+1] :
+						base64="encode"
+						
+					elif "decode" in args[index+1] :
+						base64 = "decode"
+					else:
+						print "base64 options are not given."
+						sys.exit(1)
+				except:
+					base64= ""
 			if "-i" in i:
 				input_file_name = args[index+1] 
 			index +=1
 			
 		except:
 			index+=1
-	parameters.update({"find_exe_with_key":find_exe_with_key,"find_exe_with_brute_force":find_exe_with_brute_force,"outfile":outfile,"to_hex_unints":to_hex_unints,"decrypt_with_one_byte_key":decrypt_with_key,"input_file_name":input_file_name})
+	parameters.update({"base64":base64,"find_exe_with_key":find_exe_with_key,"find_exe_with_brute_force":find_exe_with_brute_force,"outfile":outfile,"to_hex_unints":to_hex_unints,"decrypt_with_one_byte_key":decrypt_with_key,"input_file_name":input_file_name})
 	#print parameters
 	return parameters
+def base64(params):
+	infile = params["input_file_name"] 
+	outfile = params["outfile"]
+	data =open(infile).read()
+	output= ''
+	if params["base64"] == "encode":
+		print "[-] converting to base64"
+		output = b64encode(data)
+	elif params["base64"] == "decode":
+		print "[-] converting back to to base64"
+		try:
+			output=b64decode(data)
+		except:
+			print "not base64 encoded"
+	else:
+		print "Invalid arguments for base64"
+		sys.exit(1)
+	if outfile!="":
+		writefile(outfile,output)
+	else:
+		print output
 # main function 
 def main(params):
 	if params["to_hex_unints"] == True:
@@ -207,6 +244,8 @@ def main(params):
 		one_byte_encryption_decrytion_XOR(params)
 	if params["find_exe_with_key"]!="" or params["find_exe_with_brute_force"]!=False:
 		find_EXE_by_XOR(params)
+	if params["base64"] == "encode" or params["base64"]=="decode":
+		base64(params)
 	else:
 		#print "exiting... " 
 		exit(1)
