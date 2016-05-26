@@ -202,9 +202,10 @@ def setParameters(args):
 					elif "decode" in args[index+1] :
 						base64 = "decode"
 					else:
-						print "base64 options are not given."
+						print "base64 options are not given. provide 'enocde' or 'decode' with -b switch"
 						sys.exit(1)
 				except:
+					print "base64 options are not given. provide 'enocde' or 'decode' with -b switch"
 					base64= ""
 			if "-i" in i:
 				input_file_name = args[index+1] 
@@ -238,17 +239,19 @@ def base64(params):
 		print output
 # main function 
 def main(params):
-	if params["to_hex_unints"] == True:
-		to_hex_unints(params)
-	if params["decrypt_with_one_byte_key"] != "":
-		one_byte_encryption_decrytion_XOR(params)
-	if params["find_exe_with_key"]!="" or params["find_exe_with_brute_force"]!=False:
-		find_EXE_by_XOR(params)
-	if params["base64"] == "encode" or params["base64"]=="decode":
-		base64(params)
-	else:
-		#print "exiting... " 
-		exit(1)
+	
+		if params["to_hex_unints"] == True:
+			to_hex_unints(params)
+		if params["decrypt_with_one_byte_key"] != "":
+			one_byte_encryption_decrytion_XOR(params)
+		if params["find_exe_with_key"]!="" or params["find_exe_with_brute_force"]!=False:
+			find_EXE_by_XOR(params)
+		if params["base64"] == "encode" or params["base64"]=="decode":
+			base64(params)
+		else:
+			#print "exiting... " 
+			exit(1)
+	
 if __name__=="__main__":
 	if len(sys.argv)< 4:
 		
@@ -258,10 +261,15 @@ if __name__=="__main__":
 		print "		-o file name	generate output file"
 		print "		-r		raw to hexadeciaml uints words separated by comma,e.g abcdef -> 0xXXXXXXX, ..."
 		print "		-k key		encryption / decrytion by XOR"
-		print "		-e key		Find windows executable which is XORED"
-		print "		-e		Find windows executable which is XORED using bryteforce by one byte key"
+		print "		-e key		Find XORED windows executable with provided key"
+		print "		-e		Find XORED windows executable using bryteforce by one byte key"
+		
+		print "                -b encode|decode	 conversion to base64 and back"
 		
 	else:
 		args=sys.argv[1:]
-		params=setParameters(args)  # set parameters in a dict, returns dict 
-		main(params)
+		if os.path.exists(sys.argv[2]):
+			params=setParameters(args)  # set parameters in a dict, returns dict 
+			main(params)
+		else:
+			print "input file not found"
