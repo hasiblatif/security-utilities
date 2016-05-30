@@ -7,12 +7,9 @@ import os
 import getopt
 import time
 
-def to_hex_unints(params):
+def to_hex_unints(params,infile,outfile):
 	if params["input_file_name"]!="":
 		print "[-] Converting raw data to hexadecimal uints "
-		infile = params["input_file_name"]
-		
-		outfile = params["outfile"] 
 		data=''
 		four_uints=''
 		with codecs.open(infile,"r") as f:
@@ -42,9 +39,7 @@ def to_hex_unints(params):
 	else:
 		print "input file missing"
 		sys.exit(1)
-def one_byte_encryption_decrytion_XOR(params):
-	infile = params["input_file_name"] 
-	outfile = params["outfile"] 
+def one_byte_encryption_decrytion_XOR(params,infile,outfile):
 	index = 0
 	if infile!="":
 		key= params["decrypt_with_one_byte_key"]
@@ -54,7 +49,7 @@ def one_byte_encryption_decrytion_XOR(params):
 		if key!="":
 			if len_key==1:
 				key = ord(key)
-			with open(infile,"r") as f: #../Downloads/NewProject1.swf
+			with open(infile,"r") as f:
 				data=f.read()
 				a=''
 				while index < len(data):
@@ -66,12 +61,8 @@ def one_byte_encryption_decrytion_XOR(params):
 							bytes=data[index:index+len_key]
 							for i in range(len_key):
 								try:
-									#print bytes[i] , key[i]
-									#print bytes
 									a+=chr(ord(bytes[i]) ^ ord(key[i]))
 								except Exception as e:
-									#print e,i,bytes,key
-									#print len(bytes),index
 									pass
 							index = index+len_key
 				if outfile!="":
@@ -84,10 +75,8 @@ def one_byte_encryption_decrytion_XOR(params):
 	else:
 		print "input file missing"
 		sys.exit(1)
-def find_EXE_by_XOR(params):
+def find_EXE_by_XOR(params,infile,outfile):
 	if params["find_exe_with_key"]!= "":
-		infile = params["input_file_name"] 
-		outfile = params["outfile"]
 		index=0
 		key = params["find_exe_with_key"]
 		len_key= len(key)
@@ -172,6 +161,8 @@ def setParameters(args):
 	base64 =""
 	#opts, args = getopt.getopt(args,"hid:",["inputUrlsFileName=","dh_file="])
 	#print opts
+	raw_to_hex = False
+	hex_to_raw = False
 	for i in args:
 		try:
 			if "-o" in i:
@@ -207,18 +198,21 @@ def setParameters(args):
 				except:
 					print "base64 options are not given. provide 'enocde' or 'decode' with -b switch"
 					base64= ""
+			if "-x" in i:
+				raw_to_hex = True
+			if "-a" in i:
+				hex_to_raw = True
 			if "-i" in i:
 				input_file_name = args[index+1] 
 			index +=1
 			
 		except:
 			index+=1
-	parameters.update({"base64":base64,"find_exe_with_key":find_exe_with_key,"find_exe_with_brute_force":find_exe_with_brute_force,"outfile":outfile,"to_hex_unints":to_hex_unints,"decrypt_with_one_byte_key":decrypt_with_key,"input_file_name":input_file_name})
+	parameters.update({"hex_to_raw":hex_to_raw,"raw_to_hex":raw_to_hex,"base64":base64,"find_exe_with_key":find_exe_with_key,"find_exe_with_brute_force":find_exe_with_brute_force,"outfile":outfile,"to_hex_unints":to_hex_unints,"decrypt_with_one_byte_key":decrypt_with_key,"input_file_name":input_file_name})
 	#print parameters
 	return parameters
-def base64(params):
-	infile = params["input_file_name"] 
-	outfile = params["outfile"]
+def base64(params,infile,outfile):
+	
 	data =open(infile).read()
 	output= ''
 	if params["base64"] == "encode":
@@ -237,17 +231,47 @@ def base64(params):
 		writefile(outfile,output)
 	else:
 		print output
+def raw_to_hex(params,infile,outfile):
+	print "[-] converting to hex"
+	data =open(infile).read()
+	output= ''
+	try:
+		output = binascii.hexlify(data)
+	except:
+		output = binascii.hexlify(data+"0")
+	if outfile!="":
+		writefile(outfile,output)
+	else:
+		print output
+def hex_to_raw(params,infile,outfile):
+	print "[-] converting to raw"
+	data =open(infile).read()
+	output= ''
+	try:
+		output = binascii.unhexlify(data)
+	except Exception as e:
+		print e
+		sys.exit(1)
+	if outfile!="":
+		writefile(outfile,output)
+	else:
+		print output
 # main function 
 def main(params):
-	
+		infile = params["input_file_name"] 
+		outfile = params["outfile"]
 		if params["to_hex_unints"] == True:
 			to_hex_unints(params)
 		if params["decrypt_with_one_byte_key"] != "":
-			one_byte_encryption_decrytion_XOR(params)
+			one_byte_encryption_decrytion_XOR(params,infile,outfile)
 		if params["find_exe_with_key"]!="" or params["find_exe_with_brute_force"]!=False:
-			find_EXE_by_XOR(params)
+			find_EXE_by_XOR(params,infile,outfile)
 		if params["base64"] == "encode" or params["base64"]=="decode":
-			base64(params)
+			base64(params,infile,outfile)
+		if params["raw_to_hex"] == True:
+			raw_to_hex(params,infile,outfile)
+		if params["hex_to_raw"] == True:
+			hex_to_raw(params,infile,outfile)
 		else:
 			#print "exiting... " 
 			exit(1)
@@ -265,6 +289,9 @@ if __name__=="__main__":
 		print "		-e		Find XORED windows executable using bryteforce by one byte key"
 		
 		print "                -b encode|decode	 conversion to base64 and back"
+		print "		-x 		raw input to hex"
+		print "		-a 		hex to raw (ASCII)"
+		
 		
 	else:
 		args=sys.argv[1:]
