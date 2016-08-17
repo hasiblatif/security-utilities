@@ -1,0 +1,6 @@
+1. jar extraction
+2. mach-o
+3. app 
+4. dmg / pkg / dpkg 
+
+5.

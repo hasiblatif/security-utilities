@@ -185,6 +185,9 @@ def extract_payload_from_pcap(infile):
 					pass
 		except:
 			pass
+	print "---------"
+	print payload
+	print "---------"
 	return payload
 def writefile(outfile,data):
 	
@@ -206,60 +209,41 @@ def setParameters(args):
 	find_exe_with_key = ""
 	find_exe_with_brute_force = False
 	base64 =""
-	#opts, args = getopt.getopt(args,"hid:",["inputUrlsFileName=","dh_file="])
-	#print opts
+	opts, args = getopt.getopt(args,"i:o:e:b:b:zraphxk:",["inputFileName=","outputFileName=","exe_with_key=","encode=","decode","xor_key="])
+	#sys.exit(1)
 	raw_to_hex = False
 	hex_to_raw = False
 	input_file_is_pcap = False
-	for i in args:
-		try:
-			if "-p" in i:
-				input_file_is_pcap =True
-			if "-o" in i:
-			
-				outfile = args[index+1]
-			if "-r" in i:
-			
-				to_hex_unints = True
-			if "-k" in i:
-				if "-" not in args[index+1]:
-					decrypt_with_key = args[index+1]
-				else:
-					print "no encryption / decryption key provied"
-					sys.exit(1)
-			if "-e" in i:
-				try:
-					if "-" not in args[index+1]:
-						find_exe_with_key = args[index+1]
-					else:
-						find_exe_with_brute_force = True
-				except:
-					find_exe_with_brute_force = True
-			if "-b" in i:
-				try:
-					if "encode" in args[index+1] :
-						base64="encode"
-						
-					elif "decode" in args[index+1] :
-						base64 = "decode"
-					else:
-						print "base64 options are not given. provide 'enocde' or 'decode' with -b switch"
-						sys.exit(1)
-				except:
-					print "base64 options are not given. provide 'enocde' or 'decode' with -b switch"
-					base64= ""
-			if "-x" in i:
-				raw_to_hex = True
-			if "-a" in i:
-				hex_to_raw = True
-			if "-i" in i:
-				input_file_name = args[index+1] 
-			index +=1
-			
-		except:
-			index+=1
+	
+	for opt, arg in opts:
+		if opt in ("-i", "--inputFileName"):
+			input_file_name = arg
+		elif opt in ("-o", "--outputFileName"):
+			outfile = arg
+		elif opt in ("-p", ""):
+			input_file_is_pcap =True
+		elif opt in ("-r", ""):
+			to_hex_unints = True
+		elif opt in ("-k", "--xor_key"):
+			decrypt_with_key = arg
+		elif opt in ("-z", ""):
+			find_exe_with_brute_force = True
+		elif opt in ("-e", "--exe_with_key"):
+			find_exe_with_key = arg
+		elif opt in ("-b", "--encode"):
+			base64="encode"
+		elif opt in ("-b", "--decode"):
+			base64 = "decode"
+		elif opt in ("-x", ""):
+			raw_to_hex = True
+		elif opt in ("-a", ""):
+			hex_to_raw = True
+		elif opt in ("-h", ""):
+			print_help()
+			sys.exit(1)
 	parameters.update({"input_file_is_pcap":input_file_is_pcap,"hex_to_raw":hex_to_raw,"raw_to_hex":raw_to_hex,"base64":base64,"find_exe_with_key":find_exe_with_key,"find_exe_with_brute_force":find_exe_with_brute_force,"outfile":outfile,"to_hex_unints":to_hex_unints,"decrypt_with_one_byte_key":decrypt_with_key,"input_file_name":input_file_name})
 	#print parameters
+	#sys.exit(1)
 	return parameters
 def base64(params,infile,outfile):
 	
@@ -311,7 +295,7 @@ def main(params):
 		infile = params["input_file_name"] 
 		outfile = params["outfile"]
 		if params["to_hex_unints"] == True:
-			to_hex_unints(params)
+			to_hex_unints(params,infile,outfile)
 		elif params["decrypt_with_one_byte_key"] != "":
 			one_byte_encryption_decrytion_XOR(params,infile,outfile)
 		elif params["find_exe_with_key"]!="" or params["find_exe_with_brute_force"]!=False:
@@ -325,23 +309,25 @@ def main(params):
 		else:
 			#print "exiting... " 
 			exit(1)
+
+def print_help():
+	print "usage: python utils.py -i input_file [switch] [options]"
+	print "-----------------------------------"
+	print "Following options are supported:"
+	print "		-p 		input file is a PCAP"
+	print "		-o <output file name> generate output file"
+	print "		-r		raw to hexadeciaml uints words separated by comma,e.g abcdef -> 0xXXXXXXX, ..."
+	print "		-k <key>		encryption / decrytion by XOR"
+	print "		-e <key>		Find XORED windows executable with provided key"
+	print "		-z		Find XORED windows executable using bryteforce by one byte key"
 	
+	print "                -b <encode|decode>	 conversion to base64 and back"
+	print "		-x 		raw input to hex"
+	print "		-a 		hex to raw (ASCII)"
 if __name__=="__main__":
 	if len(sys.argv)< 4:
 		
-		print "usage: python utils.py -i input_file [switch] [options]"
-		print "-----------------------------------"
-		print "Following options are supported:"
-		print "		-p 		input file is a PCAP"
-		print "		-o file name	generate output file"
-		print "		-r		raw to hexadeciaml uints words separated by comma,e.g abcdef -> 0xXXXXXXX, ..."
-		print "		-k key		encryption / decrytion by XOR"
-		print "		-e key		Find XORED windows executable with provided key"
-		print "		-e		Find XORED windows executable using bryteforce by one byte key"
-		
-		print "                -b encode|decode	 conversion to base64 and back"
-		print "		-x 		raw input to hex"
-		print "		-a 		hex to raw (ASCII)"
+		print_help()
 		
 		
 	else:
