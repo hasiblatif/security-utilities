@@ -5,7 +5,7 @@ conversion to other data types, etc
 
 ## Usage:
 
-python utils.py -i [input file] [switch] [options]
+python utils.py -i [input file] [options]
 
 Following options are supported:
 
@@ -17,5 +17,13 @@ Following options are supported:
 
 -e key		  Find windows executable which is XORED
 
--e		      Find windows executable which is XORED using bryteforce by one byte key
+-z		      Find windows executable which is XORED using bryteforce by one byte key
+
+-p     If input file is a pcap
+
+-x raw input to hex
+
+-a hex to raw
+
+-b <encode|decode>	 conversion to base64 and back
 
