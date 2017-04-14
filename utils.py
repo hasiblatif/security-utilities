@@ -209,11 +209,12 @@ def setParameters(args):
 	find_exe_with_key = ""
 	find_exe_with_brute_force = False
 	base64 =""
-	opts, args = getopt.getopt(args,"i:o:e:b:b:zraphxk:",["inputFileName=","outputFileName=","exe_with_key=","encode=","decode","xor_key="])
+	opts, args = getopt.getopt(args,"i:o:e:zraphxk:bD",["inputFileName=","outputFileName=","exe_with_key=","","","xor_key="])
 	#sys.exit(1)
 	raw_to_hex = False
 	hex_to_raw = False
 	input_file_is_pcap = False
+	print opts
 	
 	for opt, arg in opts:
 		if opt in ("-i", "--inputFileName"):
@@ -230,9 +231,9 @@ def setParameters(args):
 			find_exe_with_brute_force = True
 		elif opt in ("-e", "--exe_with_key"):
 			find_exe_with_key = arg
-		elif opt in ("-b", "--encode"):
+		elif opt in ("-b", "encode"):
 			base64="encode"
-		elif opt in ("-b", "--decode"):
+		elif opt in ("-D", "decode"):
 			base64 = "decode"
 		elif opt in ("-x", ""):
 			raw_to_hex = True
@@ -248,6 +249,7 @@ def setParameters(args):
 def base64(params,infile,outfile):
 	
 	data =open(infile).read()
+	print params
 	output= ''
 	if params["base64"] == "encode":
 		print "[-] converting to base64"
@@ -321,7 +323,8 @@ def print_help():
 	print "		-e <key>		Find XORED windows executable with provided key"
 	print "		-z		Find XORED windows executable using bryteforce by one byte key"
 	
-	print "                -b <encode|decode>	 conversion to base64 and back"
+	print "     -b   conversion to base64 "
+	print "		-D	 base64 decode to raw/ascii "
 	print "		-x 		raw input to hex"
 	print "		-a 		hex to raw (ASCII)"
 if __name__=="__main__":
