@@ -5,6 +5,9 @@ import codecs
 import struct
 import os
 import getopt
+import re
+import traceback
+import hashlib
 import time
 from scapy.all import *
 def to_hex_unints(params,infile,outfile):
@@ -86,7 +89,7 @@ def find_EXE_by_XOR(params,infile,outfile):
 		if  params["input_file_is_pcap"] == True:
 			infile_data=extract_payload_from_pcap(infile)
 		else:
-			infile_data=open(infile,"r").read()
+			infile_data=open(infile,"rb").read()
 		if "DOS mode" in infile_data:
 				print "[-] Exe found in plain text. Extracting ..."
 				extract_binary(infile_data,outfile)
@@ -112,59 +115,68 @@ def find_EXE_by_XOR(params,infile,outfile):
 			print "[-] could not find exe in:" +infile
 		
 	else:
-		
+		exe_found = False
 		try:
-			key = 0x00
 			infile = params["input_file_name"]
 			if  params["input_file_is_pcap"] == True:
 				infile_data=extract_payload_from_pcap(infile)
 			else:
-				infile_data = open(infile,"r").read()
-			if "DOS mode" in infile_data:
-				print "[-] Exe found in plain text. Extracting ..."
-				extract_binary(infile_data,outfile)
-				sys.exit(1)
+				infile_data = open(infile,"rb").read()
+			print "[-] Checking Exe in plaintext ..."
+			for m in re.finditer("DOS mode",infile_data):
+				extract_binary(infile_data,m.start(0),outfile)
+				exe_found = True
+			if not exe_found:
+				print "[-] could not find exe in plaintext in ->" + infile
 			print "[-] Trying XOR bruteforce of one byte for searching windows binary"
+			exe_found = False
 			decrypted_data=''
-			for i in range(0,0xff):
+			for i in range(1,0xff):
 				key = i
 				decrypted_data=''
 				for j in range(0,len(infile_data)):
 					decrypted_data += chr(key ^ ord(infile_data[j]))
-				if "DOS mode" in decrypted_data:
-					print "[-] Exe found with key: " + chr(key)
-					extract_binary(decrypted_data,outfile)
-			print "[-] could not find exe in:" +infile
+				for m in re.finditer("DOS mode",decrypted_data):
+					print "[-] Exe found with key: " + hex(key)
+					extract_binary(decrypted_data,m.start(0),outfile)
+					exe_found = True
+					
+			if not exe_found:
+				print "[-] could not find Xored exe in ->" + infile
 		except Exception as e:
-			print e
+			print traceback.print_exc()
 			sys.exit(1)
-def extract_binary(data,outfile):
+def extract_binary(data,dos_offset,outfile):
 	try:
-		dos= data.find("DOS mode")
-		MZ_offset=data[:dos].find("MZ")
-		PE_offset = struct.unpack("<I",data[MZ_offset+60:MZ_offset+60+4])
-		size_of_dos_header = PE_offset[0]
-		no_of_sections = struct.unpack("<h",data[MZ_offset+PE_offset[0]+6:MZ_offset+PE_offset[0]+6+2])
-		size_of_optional_header= struct.unpack("<h",data[MZ_offset+PE_offset[0]+20:MZ_offset+PE_offset[0]+20+2])
-		start_of_sections_headers= MZ_offset+size_of_dos_header+size_of_optional_header[0]+24
-		section_sizes = 0
-		index = 0
-		for i in range(0,no_of_sections[0]):
-			section_sizes +=  struct.unpack("<I", data[start_of_sections_headers+16+index:index+start_of_sections_headers+16+4])[0]
-			
-			index+=40
-		size_of_image =struct.unpack("<I",data[MZ_offset+PE_offset[0]+22+56:MZ_offset+PE_offset[0]+22+56+4])
-		size_of_image = int(hex(size_of_image[0])[2:-4],16)
-		print "[-] Windows Executable found at offset:" +  hex(MZ_offset)[2:] 
-		if outfile!="":
-			print "[-] Writing decrypted file to: " + outfile
-			writefile(outfile,data[MZ_offset:MZ_offset+section_sizes+size_of_dos_header+size_of_optional_header[0]+24+(40*no_of_sections[0])])
-		else:
-	
-			print data[MZ_offset:MZ_offset+section_sizes+size_of_dos_header+size_of_optional_header[0]+24+(40*no_of_sections[0])]
+		
+		if dos_offset:
+			MZ_offset= dos_offset-108
+			if data[MZ_offset:MZ_offset+2] == "MZ":
+				print "[-] Windows Executable found at offset:" +  hex(MZ_offset)[2:] + " Extracting ..."
+				PE_offset = struct.unpack("<I",data[MZ_offset+60:MZ_offset+60+4])
+				header_size = 0x1000
+				PE_header_size = 24
+				size_of_dos_header = PE_offset[0]
+				no_of_sections = struct.unpack("<h",data[MZ_offset+PE_offset[0]+6:MZ_offset+PE_offset[0]+6+2])
+				size_of_optional_header= struct.unpack("<h",data[MZ_offset+PE_offset[0]+20:MZ_offset+PE_offset[0]+20+2])
+				start_of_sections_headers = MZ_offset+size_of_dos_header+size_of_optional_header[0]+ PE_header_size
+				section_sizes = 0
+				index = 0
+				for i in range(0,no_of_sections[0]):
+					size = struct.unpack("<I", data[start_of_sections_headers+16+index:index+start_of_sections_headers+16+4])[0]
+					section_sizes +=  size
+					
+					index+=40
+				exe_size = section_sizes+ header_size
+				if outfile!="":
+					print "[-] Writing decrypted file to: " + outfile
+					print "[-] md5 ->",  hashlib.md5(data[MZ_offset:MZ_offset + exe_size]).hexdigest().lower()
+					writefile(outfile,data[MZ_offset:MZ_offset + exe_size])
+
+				else:
+					print data[MZ_offset:MZ_offset + exe_size]
 	except Exception as e:
-		print "Error while extracting binary: " +str(e)
-	sys.exit(1)
+		print "Error while extracting binary: " + str(traceback.print_exc())
 def extract_payload_from_pcap(infile):
 	INFILE = infile
 	paks = rdpcap(INFILE)
@@ -191,6 +203,18 @@ def extract_payload_from_pcap(infile):
 	return payload
 def writefile(outfile,data):
 	
+	if os.path.exists(outfile):
+			print "[-] File exists appending file_name ..."
+			unique_file = False
+			counter = 0
+			while not unique_file:
+
+				outfile += "_" + str(counter)
+				if not os.path.exists(outfile):
+					unique_file = True
+				counter += 1
+
+
 	of=codecs.open(outfile,"w")
 	of.write(data)
 	of.close()
@@ -214,7 +238,7 @@ def setParameters(args):
 	raw_to_hex = False
 	hex_to_raw = False
 	input_file_is_pcap = False
-	print opts
+	#print opts
 	
 	for opt, arg in opts:
 		if opt in ("-i", "--inputFileName"):
